@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sweet-tooth-driver-app
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SHOPIFY_STORE_URL
+        value: thesweettoothfl.myshopify.com
+      - key: SHOPIFY_ACCESS_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
