@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: sweet-tooth-driver-app
+    runtime: node
+    buildCommand: npm ci --include=dev && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
