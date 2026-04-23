@@ -1,0 +1,231 @@
+import { Delivery, DeliveryStatus } from '../types';
+import { DELIVERY_FEES } from '../src/constants';
+
+export const getDeliveries = async (): Promise<Delivery[]> => {
+  try {
+    const [response, manualResp] = await Promise.all([
+      fetch('/api/orders'),
+      fetch('/api/manual-orders'),
+    ]);
+    if (!response.ok) throw new Error("Connection failed");
+    const data = await response.json();
+    const orders = data.orders || [];
+    const podData = data.podData || {};
+
+    // Fetch manual orders (never throw if this fails)
+    let manualOrders: Delivery[] = [];
+    try {
+      if (manualResp.ok) {
+        const manualData = await manualResp.json();
+        manualOrders = (manualData.orders || []) as Delivery[];
+      }
+    } catch { /* ignore */ }
+
+    // If Shopify returns real orders, use them
+    if (orders.length > 0) {
+      const mapped = orders.map((order: any) => {
+        const delivery = mapShopifyOrder(order);
+        if (podData[delivery.id]) {
+          const pod = podData[delivery.id];
+          // Pod data from list endpoint is now "light" — no actual photo/signature data
+          // but has hasPhoto/hasSignature flags. Full data is fetched on-demand.
+          if (pod.notes && !pod.driverNotes) pod.driverNotes = pod.notes;
+          // Also normalize completedAt from status tag if missing
+          if (!pod.completedAt && delivery.completedAt) pod.completedAt = delivery.completedAt;
+          // Merge POD data into delivery (status, timestamps, notes, flags)
+          const merged = { ...delivery, ...pod };
+          // Debug: log first few DELIVERED orders
+          if (pod.status === 'DELIVERED' && orders.indexOf(order) < 3) {
+            console.log(`[DEBUG] Order ${delivery.orderNumber}: delivery.status=${delivery.status}, pod.status=${pod.status}, merged.status=${merged.status}`);
+          }
+          return merged;
+        }
+        return delivery;
+      });
+      return [...mapped, ...manualOrders];
+    }
+
+    // Otherwise fall back to samples (for testing) + manual orders
+    return [...getSamples(), ...manualOrders];
+  } catch (error) {
+    console.warn("Shopify unavailable, using samples", error);
+    return getSamples();
+  }
+};
+
+// Parse a delivery date string from Shopify note attributes into YYYY-MM-DD
+// Handles: "Mar 9", "March 9", "03/09/2026", "2026-03-09", "Today", etc.
+function parseDeliveryDate(raw: string | undefined): string {
+  if (!raw || raw.trim() === '') return ''; // No date = no fallback. Ever.
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  // MM/DD/YYYY
+  const mdy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy) return `${mdy[3]}-${mdy[1].padStart(2,'0')}-${mdy[2].padStart(2,'0')}`;
+
+  // "Mar 9" or "March 9" or "Mar 9, 2026"
+  const monthNames: Record<string,string> = {
+    jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',
+    jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'
+  };
+  const mn = raw.match(/^([a-z]+)\s+(\d{1,2})(?:,?\s*(\d{4}))?$/i);
+  if (mn) {
+    const mon = monthNames[mn[1].toLowerCase().slice(0,3)];
+    if (mon) {
+      const year = mn[3] || new Date().getFullYear().toString();
+      return `${year}-${mon}-${mn[2].padStart(2,'0')}`;
+    }
+  }
+
+  // Try native Date parse
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+
+  return ''; // Still no date — return empty, never fake it
+}
+
+const mapShopifyOrder = (order: any): Delivery => {
+  const shipping = order.shipping_address || {};
+  const buyer = order.customer || {};
+  const billing = order.billing_address || {};
+
+  const attributes: Record<string, string> = {};
+  (order.note_attributes || []).forEach((attr: any) => {
+    attributes[attr.name.toLowerCase().trim()] = attr.value;
+  });
+
+  const filteredItems = (order.line_items || [])
+    .filter((item: any) => !item.name.toLowerCase().includes('tip'))
+    .map((item: any) => ({
+      id: item.id.toString(),
+      name: item.name,
+      quantity: item.quantity,
+      sku: item.sku || '',
+      price: parseFloat(item.price || '0'),
+      variantTitle: item.variant_title || '',
+      properties: (item.properties || []).filter((p: any) => p.value && p.value !== 'null' && !p.name.startsWith('_') && !p.name.toLowerCase().includes('delivery fee')),
+    }));
+
+  // Look up fee from ZIP-based rate table; fall back to Shopify shipping price
+  const zipCode = (order.shipping_address?.zip || '').toString().trim().slice(0, 5);
+  const shippingPrice = DELIVERY_FEES[zipCode] ?? parseFloat(order.shipping_lines?.[0]?.price || '0');
+
+  // Try multiple attribute keys for delivery date
+  const rawDate = attributes['delivery date'] 
+    || attributes['deliverydate'] 
+    || attributes['delivery_date']
+    || attributes['date']
+    || attributes['Delivery Date']
+    || attributes['Delivery date']
+    || '';
+  // If no delivery date found, log it so we can debug
+  if (!rawDate) console.log('No delivery date for order', order.id, 'attributes:', Object.keys(attributes));
+
+  return {
+    id: order.id.toString(),
+    orderNumber: order.name,
+    customer: {
+      name: `${shipping.first_name || ''} ${shipping.last_name || ''}`.trim() || 'Recipient',
+      phone: shipping.phone || '',
+      email: buyer.email || ''
+    },
+    address: {
+      street: shipping.address1 || 'No Address',
+      unit: shipping.address2 || '',
+      company: shipping.company || '',
+      city: shipping.city || 'Miami',
+      zip: shipping.zip || '33179',
+      lat: parseFloat(shipping.latitude) || 0,
+      lng: parseFloat(shipping.longitude) || 0
+    },
+    items: filteredItems,
+    deliveryFee: shippingPrice,
+    orderTotal: parseFloat(order.total_price || order.subtotal_price || "0"),
+    deliveryInstructions: order._delivery_instructions || attributes['delivery instructions'] || attributes['delivery_instructions'] || attributes['deliveryinstructions'] || attributes['instructions'] || attributes['special instructions'] || attributes['special_instructions'] || '',
+    // Status priority: 1) Shopify cancelled, 2) our st_ tag, 3) Shopify fulfilled, 4) PENDING
+    status: order.cancelled_at ? 'CANCELLED' as DeliveryStatus :
+      (order._st_status as DeliveryStatus) ||
+      (order.fulfillment_status === 'fulfilled' ? DeliveryStatus.DELIVERED : DeliveryStatus.PENDING),
+    completedAt: order._st_completedAt || (order.fulfillment_status === "fulfilled" ? order.updated_at : undefined),
+    deliveryDate: order._st_deliveryDate || parseDeliveryDate(rawDate),
+    priority: order.tags?.toLowerCase().includes('urgent') ? 'Urgent' :
+              order.tags?.toLowerCase().includes('sympathy') ? 'Sympathy' : 'Standard',
+    driverId: order._st_driverId || '',
+    driverName: order._st_driverName || '',
+    internalNotes: [],
+    giftMessage: attributes['gift message'] || attributes['giftmessage'] || attributes['message'] || order.note || '',
+    giftSenderName: `${buyer.first_name || ''} ${buyer.last_name || ''}`.trim() || 'Customer',
+    giftSenderPhone: buyer.phone || billing.phone || shipping.phone || '',
+    giftSenderEmail: buyer.email || '',
+    giftReceiverName: `${shipping.first_name || ''} ${shipping.last_name || ''}`.trim() || '',
+    deliveryMethod: attributes['delivery method'] || attributes['deliverymethod'] || '',
+    attempts: []
+  };
+};
+
+// Sample data for testing — uses today's date in YYYY-MM-DD so schedule filter works
+const getSamples = (): Delivery[] => {
+  const today = new Date().toISOString().split('T')[0];
+  return [
+    {
+      id: '33989',
+      orderNumber: '#33989',
+      customer: { name: 'Jon & Danielle Stief', phone: '305-555-0101', email: 'stief@example.com' },
+      address: { street: '11120 S Sierra Ranch Dr', city: 'Davie', zip: '33330', lat: 26.06, lng: -80.24 },
+      items: [{ id: 'i1', name: 'XL Sympathy Basket - Dairy', quantity: 1, sku: 'B-SYM-XL', price: 221.00 }],
+      deliveryFee: 30.00,
+      deliveryInstructions: 'Fragile. Gate code 0912.',
+      status: DeliveryStatus.PENDING,
+      deliveryDate: today,
+      priority: 'Sympathy',
+      driverId: '',
+      driverName: '',
+      attempts: [],
+      internalNotes: [],
+      giftMessage: 'With deep sympathy from the neighborhood.',
+      giftSenderName: 'The Neighborhood Association',
+      giftReceiverName: 'The Stief Family'
+    },
+    {
+      id: '33991',
+      orderNumber: '#33991',
+      customer: { name: 'Marcus Rodriguez', phone: '305-555-9988', email: 'mrodriguez@example.com' },
+      address: { street: '1420 Brickell Ave', city: 'Miami', zip: '33131', lat: 25.75, lng: -80.19 },
+      items: [{ id: 'i9', name: 'The Indulgence Crate', quantity: 1, sku: 'B-IND-LG', price: 145.00 }],
+      deliveryFee: 25.00,
+      deliveryInstructions: 'Gate code #9988. Call on arrival.',
+      status: DeliveryStatus.FAILED,
+      deliveryDate: today,
+      priority: 'Standard',
+      driverId: '',
+      driverName: '',
+      attempts: [{ id: 'fail-1', timestamp: new Date().toISOString(), driverId: '', driverName: '', attemptNumber: 1 as 1|2, reason: 'ACCESS_ISSUE', notes: 'Gate code provided was incorrect.' }],
+      internalNotes: [],
+      giftMessage: 'Congratulations on the new place!',
+      giftSenderName: 'The Real Estate Group',
+      giftReceiverName: 'Marcus Rodriguez'
+    },
+    {
+      id: '33985',
+      orderNumber: '#33985',
+      customer: { name: 'Sarah Miller', phone: '954-555-0303', email: 'sm@example.com' },
+      address: { street: '456 Ocean Dr', city: 'Miami Beach', zip: '33139', lat: 25.76, lng: -80.13 },
+      items: [{ id: 'i3', name: 'Holiday Cheer Sampler', quantity: 1, sku: 'SAM-HOL', price: 45.00 }],
+      deliveryFee: 25.00,
+      deliveryInstructions: 'Leave with valet.',
+      status: DeliveryStatus.DELIVERED,
+      deliveryDate: today,
+      priority: 'Standard',
+      driverId: '',
+      driverName: '',
+      attempts: [],
+      internalNotes: [],
+      giftMessage: 'See you soon!',
+      giftSenderName: 'Grandma',
+      giftReceiverName: 'Sarah Miller',
+      completedAt: new Date().toISOString()
+    }
+  ];
+};
