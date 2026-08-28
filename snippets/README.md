@@ -3,47 +3,52 @@
 `st-chat-widget.liquid` is a mirror of the chat widget that runs on
 thesweettooth.com. The live copy is **not version-controlled** — it lives in the
 Shopify theme (Online Store → Themes → Edit code), and the file here was pulled
-off the rendered page so changes to it can be reviewed as a diff before anyone
-edits the theme.
+off the rendered page so changes can be reviewed as a diff before anyone edits
+the theme.
 
-Keep the two in sync by hand. After editing the theme, re-pull with:
+To apply: replace the whole existing block in the theme — the
+`<div id="st-chat">…</div>` plus the `<style>` and `<script>` that follow it —
+with this file. It is plain HTML/CSS/JS, no Liquid.
+
+To re-pull after a theme edit:
 
     curl -sL https://thesweettooth.com/ | sed -n '/<div id="st-chat"/,/^<\/script>/p'
 
-## Applying the current fix by hand
+## Design notes
 
-If you would rather not paste the whole block, the fix is three edits to the
-existing widget in the theme.
+The bottom-right corner is shared with the HikeOrders accessibility widget, so
+the launcher is built to sit *with* it rather than compete:
 
-**1. Delete the hint element** (in the markup, just under `<div id="st-chat" …>`):
+- **Launcher** is a 44×44 tile on mobile, matching that widget's footprint and
+  radius, stacked on the same right-hand axis with a 12px gap — one column of
+  equal tiles instead of two mismatched shapes. Desktop keeps the labelled pill.
+- **Clearance** is held by two variables at the top of the stylesheet,
+  `--st-a11y-clear-y` and `--st-a11y-clear-x`. They keep the launcher above the
+  accessibility widget and the send button out from under it, on every
+  breakpoint. **If that widget moves, retune these two numbers** — its position
+  is set in the app, not here.
+- **Material** is `rgba(29,29,31,.92)` over a backdrop blur, with a hairline
+  inner border and a two-layer shadow, so the control reads as floating glass
+  rather than a solid slab. Falls back to flat `#1D1D1F` where
+  `backdrop-filter` is unsupported.
+- **The launcher tucks away** while the reader scrolls down and returns on the
+  way back up, the way a browser toolbar does. This is the main "less intrusive"
+  mechanism — it is absent from the page for most of a reading session.
+- **The panel rises as a sheet** on mobile (rounded top, grabber, scrim,
+  tap-outside and Escape to dismiss) instead of swapping the screen out.
+- **Motion** uses the iOS sheet curve `cubic-bezier(.32,.72,0,1)` with
+  press-state scaling, and is disabled entirely under
+  `prefers-reduced-motion`.
 
-```html
-<div id="st-chat-hint" hidden>📦 Track my order</div>
-```
+Brand constraints observed: near-black `#1D1D1F` (never pure black), neutrals,
+one 36px gold `#D4AF37` hairline as the only accent, restrained shadows, and no
+emoji in on-site copy — the `📦`/`🚗`/`👋` that were in the quick replies and the
+greeting are gone.
 
-**2. Delete the hint CSS**, both the `#st-chat-hint{…}` rule and the
-`#st-chat-hint[hidden]{display:none}` line that follows it, plus the
-`#st-chat-hint{bottom:…}` line inside the `@media(max-width:749px)` block.
+## Known issue this does not fix
 
-**3. In that same media query**, replace the `#st-chat-toggle` rule with:
-
-```css
-#st-chat-toggle{bottom:calc(84px + env(safe-area-inset-bottom));right:16px;
-  width:48px;height:48px;min-width:48px;padding:0;gap:0;border-radius:50%;
-  justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.22)}
-#st-chat-toggle-label{display:none}
-```
-
-**4. In the script**, delete the `var hint = …` line, the `try{…}catch(e){}`
-block that auto-shows it, and the `hint.onclick = …` line — then remove the
-lone `hint.hidden=true;` inside `function open(){…}`. Nothing else references
-`hint`, so the widget keeps working.
-
-## Why
-
-The launcher had grown into a wide labelled pill, and `#st-chat-hint` popped a
-second black pill for six seconds on every new mobile session. The hint sits at
-`right:76px` while the toggle sits at `right:16px` and is far wider than 60px,
-so the hint landed *underneath* the toggle — same `z-index`, hint first in the
-DOM. All it ever showed was a stray dark edge and a 📦 peeking out from behind
-the chat button. Both are gone; desktop keeps the labelled pill.
+The accessibility widget overlaps the chat panel's bottom-right corner at
+**every** breakpoint, not just mobile. The clearance variables work around it,
+but the real fix is to move that widget to the bottom-**left** in the HikeOrders
+app settings, which frees the corner entirely and lets the clearance values drop
+back to zero.

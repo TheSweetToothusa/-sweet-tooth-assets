@@ -1,75 +1,166 @@
 <div id="st-chat" data-api="https://driver-s-app.onrender.com">
   <button id="st-chat-toggle" aria-label="Chat with The Sweet Tooth — track your order or ask a question">
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="white" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.4 1.3 4.5 3.4 5.9-.1.9-.5 2.2-1.4 3.1 1.6-.2 3.2-.8 4.4-1.7 1.1.3 2.3.5 3.6.5 5.5 0 10-3.6 10-8s-4.5-8-10-8z"/></svg>
+    <svg class="st-icon-bubble" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path d="M20.25 11.25c0 3.94-3.7 7.13-8.25 7.13-.97 0-1.9-.14-2.77-.41l-4.48 1.28 1.3-3.63c-1.43-1.28-2.3-2.98-2.3-4.37 0-3.94 3.7-7.13 8.25-7.13s8.25 3.19 8.25 7.13z"/>
+    </svg>
     <span id="st-chat-toggle-label">Chat &amp; track order</span>
   </button>
 
-  <div id="st-chat-panel" hidden>
+  <div id="st-chat-scrim" hidden></div>
+
+  <div id="st-chat-panel" role="dialog" aria-modal="true" aria-label="Chat with The Sweet Tooth" hidden>
+    <div id="st-chat-grabber" aria-hidden="true"></div>
     <div id="st-chat-head">
-      <span>The Sweet Tooth</span>
-      <button id="st-chat-close" aria-label="Close">&times;</button>
+      <span id="st-chat-title">The Sweet Tooth</span>
+      <button id="st-chat-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
     </div>
     <div id="st-chat-quick">
-      <button id="st-quick-track" data-q="track">📦 Track my order</button>
-      <button id="st-quick-delivery" data-q="delivery">🚗 Delivery info</button>
+      <button id="st-quick-track" data-q="track">Track my order</button>
+      <button id="st-quick-delivery" data-q="delivery">Delivery info</button>
     </div>
     <div id="st-chat-log"></div>
     <form id="st-chat-form">
       <input id="st-chat-input" type="text" placeholder="Write a message…" autocomplete="off" />
       <button id="st-chat-send" type="submit" aria-label="Send">
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 11l18-8-8 18-2-7-8-3z" fill="#ffffff"/></svg>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M4 12h15M13 6l6 6-6 6"/>
+        </svg>
       </button>
     </form>
   </div>
 </div>
 
 <style>
-  #st-chat-toggle{position:fixed;bottom:24px;right:20px;display:flex;align-items:center;gap:8px;
-    padding:11px 16px 11px 14px;border-radius:28px;background:#1a1a1a;border:none;cursor:pointer;
-    box-shadow:0 4px 16px rgba(0,0,0,.28);z-index:99998;transition:transform .15s}
-  #st-chat-toggle:hover{transform:scale(1.04)}
-  #st-chat-toggle-label{color:#fff;font-size:14px;font-weight:600;white-space:nowrap;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-  #st-chat-panel{position:fixed;bottom:24px;right:20px;width:370px;max-width:calc(100vw - 32px);
-    height:560px;max-height:calc(100vh - 120px);background:#fff;border-radius:16px;overflow:hidden;
-    box-shadow:0 12px 40px rgba(0,0,0,.28);z-index:99999;display:flex;flex-direction:column;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  /* The Sweet Tooth — storefront chat.
+     Palette is brand-locked: near-black #1D1D1F (never pure black), neutrals,
+     gold #D4AF37 as a hairline accent only. */
+  #st-chat{
+    --st-ink:#1D1D1F;
+    --st-line:#e8e8e8;
+    --st-mute:#666;
+    --st-ease:cubic-bezier(.32,.72,0,1);
+    /* The HikeOrders accessibility widget pins the bottom-right corner (~44px tile,
+       ~14px inset). These two values hold the launcher and the composer clear of it.
+       If that widget is moved (its position is set in the app, not here), retune both. */
+    --st-a11y-clear-y:70px;
+    --st-a11y-clear-x:56px;
+  }
+  #st-chat svg path{fill:none;stroke:currentColor;stroke-width:1.75;
+    stroke-linecap:round;stroke-linejoin:round}
+  #st-chat .st-icon-bubble path{fill:currentColor;stroke:none}
+
+  /* ---------- Launcher ---------- */
+  #st-chat-toggle{position:fixed;bottom:calc(var(--st-a11y-clear-y) + env(safe-area-inset-bottom));right:20px;display:flex;align-items:center;gap:9px;
+    padding:11px 17px 11px 15px;border-radius:26px;background:rgba(29,29,31,.92);border:none;
+    color:#fff;cursor:pointer;-webkit-appearance:none;appearance:none;
+    -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
+    box-shadow:0 1px 2px rgba(0,0,0,.10), 0 8px 24px rgba(0,0,0,.12);
+    z-index:99998;transition:transform .34s var(--st-ease), opacity .24s ease}
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    #st-chat-toggle{background:var(--st-ink)}
+  }
+  #st-chat-toggle::after{content:"";position:absolute;inset:0;border-radius:inherit;
+    border:.5px solid rgba(255,255,255,.14);pointer-events:none}
+  #st-chat-toggle:active{transform:scale(.94)}
+  /* Recedes while the reader is moving down the page, returns on the way back up. */
+  #st-chat-toggle.st-tucked{transform:translateY(140%) scale(.9);opacity:0;pointer-events:none}
+  #st-chat-toggle-label{color:#fff;font-size:14px;font-weight:590;letter-spacing:-.01em;
+    white-space:nowrap;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+
+  /* ---------- Sheet ---------- */
+  #st-chat-scrim{position:fixed;inset:0;background:rgba(29,29,31,.28);z-index:99998;
+    opacity:0;transition:opacity .34s var(--st-ease)}
+  #st-chat-scrim.st-shown{opacity:1}
+  #st-chat-scrim[hidden]{display:none}
+
+  #st-chat-panel{position:fixed;bottom:24px;right:20px;width:374px;max-width:calc(100vw - 32px);
+    height:580px;max-height:calc(100vh - 120px);background:#fff;border-radius:18px;overflow:hidden;
+    box-shadow:0 2px 6px rgba(0,0,0,.08), 0 20px 56px rgba(0,0,0,.18);
+    z-index:99999;display:flex;flex-direction:column;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    opacity:0;transform:translateY(12px) scale(.98);transform-origin:100% 100%;
+    transition:opacity .3s var(--st-ease), transform .34s var(--st-ease)}
+  #st-chat-panel.st-open{opacity:1;transform:none}
   #st-chat-panel[hidden]{display:none}
-  #st-chat-head{background:#1a1a1a;color:#fff;padding:14px 18px;font-weight:700;font-size:16px;
-    display:flex;justify-content:space-between;align-items:center}
-  #st-chat-close{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1;padding:0 2px}
-  #st-chat-quick{display:flex;gap:8px;padding:10px 12px;flex-wrap:nowrap;border-bottom:1px solid #eee;background:#fff}
-  #st-quick-track{flex:1 1 0;background:#1a1a1a;color:#fff;border:none;border-radius:10px;
-    padding:12px 14px;font-size:14.5px;font-weight:600;cursor:pointer;text-align:center}
-  #st-quick-track:hover{background:#333}
-  #st-quick-delivery{flex:1 1 0;background:#fff;border:1px solid #d0d0d0;border-radius:10px;
-    padding:12px 14px;font-size:14.5px;font-weight:600;cursor:pointer;color:#1a1a1a;text-align:center}
-  #st-quick-delivery:hover{background:#f2f2f2}
-  #st-chat-log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafafa}
-  .st-msg{max-width:80%;padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.45;word-wrap:break-word}
-  .st-bot{align-self:flex-start;background:#ececec;color:#1a1a1a;border-bottom-left-radius:4px}
-  .st-user{align-self:flex-end;background:#1a1a1a;color:#fff;border-bottom-right-radius:4px}
-  .st-typing{align-self:flex-start;color:#999;font-size:13px;padding:4px 14px}
-  #st-chat-form{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #eee;background:#fff}
-  #st-chat-input{flex:1;border:1px solid #d0d0d0;border-radius:22px;padding:11px 15px;font-size:14.5px;outline:none}
-  #st-chat-input:focus{border-color:#1a1a1a}
-  #st-chat-send{width:40px;height:40px;min-width:40px;border-radius:50%;background:#1a1a1a;border:none;
+
+  #st-chat-grabber{display:none}
+
+  #st-chat-head{position:relative;display:flex;align-items:center;justify-content:center;
+    padding:15px 18px;border-bottom:.5px solid var(--st-line);background:#fff}
+  #st-chat-title{font-size:15px;font-weight:600;letter-spacing:-.012em;color:var(--st-ink)}
+  /* One hairline of gold — the brand's only accent, used as a rule, never a fill. */
+  #st-chat-head::after{content:"";position:absolute;bottom:-.5px;left:50%;transform:translateX(-50%);
+    width:36px;height:1px;background:#D4AF37}
+  #st-chat-close{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    width:30px;height:30px;border-radius:50%;background:#f2f2f2;border:none;color:var(--st-mute);
     display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
-    -webkit-appearance:none;appearance:none;flex-shrink:0}
-  #st-chat-send:hover{background:#333}
+    -webkit-appearance:none;appearance:none;transition:background .18s ease, transform .18s var(--st-ease)}
+  #st-chat-close:hover{background:#e8e8e8;color:var(--st-ink)}
+  #st-chat-close:active{transform:translateY(-50%) scale(.9)}
+
+  #st-chat-quick{display:flex;gap:8px;padding:12px;border-bottom:.5px solid var(--st-line);background:#fff}
+  #st-chat-quick button{flex:1 1 0;border-radius:10px;padding:11px 12px;font:inherit;font-size:14px;
+    font-weight:560;letter-spacing:-.008em;cursor:pointer;text-align:center;
+    -webkit-appearance:none;appearance:none;
+    transition:background .18s ease, transform .18s var(--st-ease)}
+  #st-chat-quick button:active{transform:scale(.97)}
+  #st-quick-track{background:var(--st-ink);color:#fff;border:none}
+  #st-quick-track:hover{background:#2f2f31}
+  #st-quick-delivery{background:#fff;border:.5px solid #d8d8d8;color:var(--st-ink)}
+  #st-quick-delivery:hover{background:#fafafa}
+
+  #st-chat-log{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;
+    display:flex;flex-direction:column;gap:8px;background:#fafafa}
+  .st-msg{max-width:82%;padding:10px 14px;border-radius:18px;font-size:14.5px;line-height:1.45;
+    letter-spacing:-.006em;word-wrap:break-word}
+  .st-bot{align-self:flex-start;background:#ececee;color:var(--st-ink);border-bottom-left-radius:5px}
+  .st-user{align-self:flex-end;background:var(--st-ink);color:#fff;border-bottom-right-radius:5px}
+  .st-typing{align-self:flex-start;color:#999;font-size:13px;padding:4px 14px;letter-spacing:.08em}
+
+  #st-chat-form{display:flex;align-items:center;gap:8px;padding:12px;
+    padding-right:var(--st-a11y-clear-x);
+    border-top:.5px solid var(--st-line);background:#fff}
+  #st-chat-input{flex:1;min-width:0;border:.5px solid #d8d8d8;border-radius:20px;padding:10px 15px;
+    font:inherit;font-size:16px;letter-spacing:-.008em;color:var(--st-ink);outline:none;
+    background:#fafafa;transition:border-color .18s ease, background .18s ease}
+  #st-chat-input::placeholder{color:#999}
+  #st-chat-input:focus{border-color:#c2c2c2;background:#fff}
+  #st-chat-send{width:38px;height:38px;min-width:38px;border-radius:50%;background:var(--st-ink);
+    border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    padding:0;-webkit-appearance:none;appearance:none;flex-shrink:0;
+    transition:transform .18s var(--st-ease), opacity .18s ease}
+  #st-chat-send:active{transform:scale(.9)}
   #st-chat-send svg{display:block}
+
   @media(max-width:749px){
-    /* On a phone the labelled pill covered the page copy behind it. Collapse it back to a
-       compact icon, lifted clear of the accessibility widget in the bottom-right corner. */
-    #st-chat-toggle{bottom:calc(84px + env(safe-area-inset-bottom));right:16px;
-      width:48px;height:48px;min-width:48px;padding:0;gap:0;border-radius:50%;
-      justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.22)}
+    /* The launcher shares the bottom-right corner with the accessibility widget, so it
+       matches that control's footprint and stacks on the same right-hand axis — one
+       column of equal tiles instead of two mismatched shapes. */
+    #st-chat-toggle{bottom:calc(var(--st-a11y-clear-y) + env(safe-area-inset-bottom));right:14px;
+      width:44px;height:44px;min-width:44px;padding:0;gap:0;border-radius:14px;
+      justify-content:center}
     #st-chat-toggle-label{display:none}
-    #st-chat-panel{top:0;bottom:0;right:0;left:0;width:100vw;max-width:100vw;height:auto;max-height:none;
-      border-radius:0;padding-bottom:env(safe-area-inset-bottom)}
-    /* The accessibility widget floats in the bottom-right corner and sat on top of the
-       send button, so nobody on a phone could tap send. Shift send clear of it. */
-    #st-chat-form{padding-right:58px}
+
+    /* Rises as a sheet rather than swapping the screen out from under the reader. */
+    #st-chat-panel{top:auto;bottom:0;right:0;left:0;width:100%;max-width:100%;
+      height:92vh;height:92dvh;max-height:none;
+      border-radius:20px 20px 0 0;padding-bottom:env(safe-area-inset-bottom);
+      transform:translateY(100%);transform-origin:50% 100%}
+    #st-chat-panel.st-open{transform:none}
+    #st-chat-grabber{display:block;width:36px;height:5px;border-radius:3px;background:#d8d8d8;
+      margin:8px auto 0;flex-shrink:0}
+    #st-chat-head{padding:12px 18px 14px}
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    #st-chat-toggle,#st-chat-panel,#st-chat-scrim,#st-chat-close,#st-chat-send,
+    #st-chat-quick button{transition:none}
+    #st-chat-toggle.st-tucked{transform:none;opacity:1;pointer-events:auto}
   }
 </style>
 
@@ -78,6 +169,7 @@
   var root=document.getElementById('st-chat');
   var API=root.getAttribute('data-api');
   var panel=document.getElementById('st-chat-panel');
+  var scrim=document.getElementById('st-chat-scrim');
   var log=document.getElementById('st-chat-log');
   var form=document.getElementById('st-chat-form');
   var input=document.getElementById('st-chat-input');
@@ -91,23 +183,63 @@
   function user(t){log.appendChild(el('st-msg st-user',t));history.push({role:'user',content:t});scroll();}
   function typing(on){
     var ex=document.getElementById('st-typing');
-    if(on){if(!ex){var d=el('st-typing','…');d.id='st-typing';log.appendChild(d);scroll();}}
+    if(on){if(!ex){var d=el('st-typing','• • •');d.id='st-typing';log.appendChild(d);scroll();}}
     else if(ex){ex.remove();}
   }
 
   var toggleBtn=document.getElementById('st-chat-toggle');
+  var isPhone=function(){return window.matchMedia('(max-width:749px)').matches;};
+
   function open(){
     panel.hidden=false;
+    if(isPhone()){scrim.hidden=false;}
     toggleBtn.style.display='none';
+    // Let the browser lay the sheet out at its start position before transitioning in.
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){panel.classList.add('st-open');scrim.classList.add('st-shown');});
+    });
     if(!greeted){greeted=true;
-      bot("Hi! 👋 Welcome to The Sweet Tooth. Tap “Track my order” above, or ask me anything about delivery, ingredients, and more.");
+      bot("Hi — welcome to The Sweet Tooth. Tap “Track my order” above, or ask me anything about delivery, ingredients, and more.");
     }
     if(window.matchMedia('(min-width:750px)').matches){input.focus();}
   }
-  function close(){panel.hidden=true;toggleBtn.style.display='flex';}
+  function close(){
+    panel.classList.remove('st-open');
+    scrim.classList.remove('st-shown');
+    toggleBtn.style.display='flex';
+    var done=function(){panel.hidden=true;scrim.hidden=true;};
+    // Fall back to a timer if the transition never fires (reduced motion, hidden tab).
+    var fired=false;
+    panel.addEventListener('transitionend',function h(e){
+      if(e.target!==panel||e.propertyName!=='transform')return;
+      panel.removeEventListener('transitionend',h);fired=true;done();
+    });
+    setTimeout(function(){if(!fired)done();},400);
+  }
 
-  document.getElementById('st-chat-toggle').onclick=function(){panel.hidden?open():close();};
+  toggleBtn.onclick=function(){panel.hidden?open():close();};
   document.getElementById('st-chat-close').onclick=close;
+  scrim.onclick=close;
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&!panel.hidden)close();
+  });
+
+  // Chrome recedes while the reader is moving down the page and returns on the way up.
+  (function(){
+    var lastY=window.pageYOffset||0, ticking=false;
+    function update(){
+      ticking=false;
+      if(!panel.hidden)return;
+      var y=window.pageYOffset||0, dy=y-lastY;
+      if(Math.abs(dy)<6)return;
+      if(dy>0&&y>240){toggleBtn.classList.add('st-tucked');}
+      else{toggleBtn.classList.remove('st-tucked');}
+      lastY=y;
+    }
+    window.addEventListener('scroll',function(){
+      if(!ticking){ticking=true;requestAnimationFrame(update);}
+    },{passive:true});
+  })();
 
   // A link anywhere on the site (or in an email) can open this: thesweettooth.com/#chat
   function openFromUrl(){
@@ -133,7 +265,7 @@
       var q=b.getAttribute('data-q');
       if(q==='track'){user("Track my order");startTrack();}
       else if(q==='delivery'){user("Delivery info");
-        bot("For a delivery that's already on the way or scheduled, tap 📦 Track my order above to see exactly where it stands. To change or reschedule a delivery, text Katie, our delivery manager, at 305-994-4070, or email orders@thesweettooth.com.");}
+        bot("For a delivery that's already on the way or scheduled, tap “Track my order” above to see exactly where it stands. To change or reschedule a delivery, text Katie, our delivery manager, at 305-994-4070, or email orders@thesweettooth.com.");}
     };
   });
 
