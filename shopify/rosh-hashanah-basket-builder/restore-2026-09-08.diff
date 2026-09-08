@@ -1,0 +1,138 @@
+1532,1574d1531
+<                 <aside class="bb-rail" aria-label="Good to know">
+<                     <details>
+<                         <summary>What's included in every basket?</summary>
+<                         <div class="bb-rail-body">
+<                             <ul>
+<                                 <li><strong>Rosh Hashanah exclusives in every basket:</strong> mini honey jar, &ldquo;Happy New Year&rdquo; chocolate plaque, chocolate shofars, chocolate apples &amp; gelt &mdash; included free</li>
+<                                 <li>Chocolate-dipped Oreos &amp; pretzels</li>
+<                                 <li>Our seasonal collection of handmade truffles (30+ rotating flavors)</li>
+<                                 <li>Chocolate-dipped graham crackers, wafers &amp; tea biscuits</li>
+<                                 <li>A medley of our signature chocolate bark flavors</li>
+<                                 <li>Chocolate-dipped dried fruit</li>
+<                                 <li>A mix of milk, white &amp; dark chocolate (Vegan/Parve = dark only)</li>
+<                                 <li><strong>Jumbo, Ultimate &amp; Supreme</strong> baskets also include pecan pralines</li>
+<                             </ul>
+<                             <p style="margin-top:10px;">Larger baskets = more variety, not just more quantity.</p>
+<                         </div>
+<                     </details>
+<                     <details>
+<                         <summary>What are my delivery options?</summary>
+<                         <div class="bb-rail-body">
+<                             <p><strong>Same-day hand delivery — South Florida.</strong> Order by 2 PM and one of our drivers personally brings your basket to their door today.</p>
+<                             <p><strong>Nationwide shipping.</strong> Every box travels in temperature-controlled packaging; your exact rate shows at checkout.</p>
+<                             <p><strong>Free in-store pickup.</strong> 18435 NE 19th Ave, North Miami Beach — Monday&ndash;Friday, 10&ndash;5.</p>
+<                         </div>
+<                     </details>
+<                     <details>
+<                         <summary>Can I add or leave out treats?</summary>
+<                         <div class="bb-rail-body">
+<                             <p>Yes. At the last step there is a <strong>Special Instructions</strong> box. Tell us what to add, swap or leave out and we build it that way.</p>
+<                         </div>
+<                     </details>
+<                     <details>
+<                         <summary>Do you have gluten-free or parve/vegan options?</summary>
+<                         <div class="bb-rail-body">
+<                             <p>Yes. Every basket comes in Dairy or Parve/Vegan, and gluten-free treats can be added at the Add-Ons step.</p>
+<                         </div>
+<                     </details>
+<                     <p class="bb-rail-gift"><span style="margin-right:7px" aria-hidden="true">🎁</span>A personalized gift message card is <strong>included</strong> with every order.</p>
+<                     <div id="rail-plaque" style="margin:12px 0 0; padding:12px; border:1px solid #e8e8e8; border-radius:10px; background:#fff;">
+<                         <img id="rail-plaque-img" src="" alt="" loading="lazy" style="display:none; width:58%; max-width:150px; height:auto; border-radius:8px; margin:0 auto 8px;">
+<                         <p id="rail-plaque-text" style="margin:0; font-size:1.2rem; line-height:1.45; color:#333;">Every basket includes a chocolate plaque with your occasion on it.</p>
+<                     </div>
+<                 </aside>
+1594,1595d1550
+<                   /* The gold bar now covers mobile too — drop the older duplicate accordion */
+<                   .whats-inside-accordion{display:none !important;}
+1672c1627,1653
+<                 <!-- Step-2 What's Inside accordion removed 2026-09-01 per Mikey; the per-card (i) tooltip carries this -->
+---
+>                 <!-- What's Inside Accordion (Mobile) — restored 2026-09-08 per Mikey (markup identical to the 2026-08-26 version) -->
+>                 <div class="whats-inside-accordion bb-mobile-accordion-card">
+>                     <button class="accordion-toggle" onclick="toggleAccordion(this)">
+>                         <span class="bb-accordion-label">
+>                             <svg class="bb-eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+>                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+>                                 <circle cx="12" cy="12" r="3"/>
+>                             </svg>
+>                             What's inside every basket? Tap to see
+>                         </span>
+>                         <span class="arrow">▼</span>
+>                     </button>
+>                     <div class="accordion-content">
+>                         <h5>Every basket includes our signature mix:</h5>
+>                         <ul>
+>                             <li><strong>Rosh Hashanah exclusives:</strong> mini honey jar, "Happy New Year" plaque, chocolate shofars, apples & gelt — free in every basket</li>
+>                             <li>Chocolate-dipped Oreos & pretzels</li>
+>                             <li>Our seasonal collection of handmade truffles (30+ rotating flavors)</li>
+>                             <li>Chocolate-dipped graham crackers, wafers & tea biscuits</li>
+>                                 <li>A medley of our signature chocolate bark flavors</li>
+>                                 <li>Chocolate dipped dried fruit</li>
+>                             </ul>
+>                         <p>All items feature a mix of milk, white, and dark chocolate.<br>Vegan/Parve options use dark chocolate only.</p>
+>                         <p class="note">Larger baskets = more variety, not just more quantity.</p>
+>                         <a href="/pages/flavors" class="bb-flavor-guide-link">See our complete flavor guide →</a>
+>                     </div>
+>                 </div>
+2122a2104,2148
+> 
+>                 <!-- "Good to know" FAQ rail — moved here from the hidden occasion step 2026-09-08 per Mikey; markup unchanged -->
+>                 <aside class="bb-rail" aria-label="Good to know">
+>                     <details>
+>                         <summary>What's included in every basket?</summary>
+>                         <div class="bb-rail-body">
+>                             <ul>
+>                                 <li><strong>Rosh Hashanah exclusives in every basket:</strong> mini honey jar, &ldquo;Happy New Year&rdquo; chocolate plaque, chocolate shofars, chocolate apples &amp; gelt &mdash; included free</li>
+>                                 <li>Chocolate-dipped Oreos &amp; pretzels</li>
+>                                 <li>Our seasonal collection of handmade truffles (30+ rotating flavors)</li>
+>                                 <li>Chocolate-dipped graham crackers, wafers &amp; tea biscuits</li>
+>                                 <li>A medley of our signature chocolate bark flavors</li>
+>                                 <li>Chocolate-dipped dried fruit</li>
+>                                 <li>A mix of milk, white &amp; dark chocolate (Vegan/Parve = dark only)</li>
+>                                 <li><strong>Jumbo, Ultimate &amp; Supreme</strong> baskets also include pecan pralines</li>
+>                             </ul>
+>                             <p style="margin-top:10px;">Larger baskets = more variety, not just more quantity.</p>
+>                         </div>
+>                     </details>
+>                     <details>
+>                         <summary>What are my delivery options?</summary>
+>                         <div class="bb-rail-body">
+>                             <p><strong>Same-day hand delivery — South Florida.</strong> Order by 2 PM and one of our drivers personally brings your basket to their door today.</p>
+>                             <p><strong>Nationwide shipping.</strong> Every box travels in temperature-controlled packaging; your exact rate shows at checkout.</p>
+>                             <p><strong>Free in-store pickup.</strong> 18435 NE 19th Ave, North Miami Beach — Monday&ndash;Friday, 10&ndash;5.</p>
+>                         </div>
+>                     </details>
+>                     <details>
+>                         <summary>Can I add or leave out treats?</summary>
+>                         <div class="bb-rail-body">
+>                             <p>Yes. At the last step there is a <strong>Special Instructions</strong> box. Tell us what to add, swap or leave out and we build it that way.</p>
+>                         </div>
+>                     </details>
+>                     <details>
+>                         <summary>Do you have gluten-free or parve/vegan options?</summary>
+>                         <div class="bb-rail-body">
+>                             <p>Yes. Every basket comes in Dairy or Parve/Vegan, and gluten-free treats can be added at the Add-Ons step.</p>
+>                         </div>
+>                     </details>
+>                     <p class="bb-rail-gift"><span style="margin-right:7px" aria-hidden="true">🎁</span>A personalized gift message card is <strong>included</strong> with every order.</p>
+>                     <div id="rail-plaque" style="margin:12px 0 0; padding:12px; border:1px solid #e8e8e8; border-radius:10px; background:#fff;">
+>                         <img id="rail-plaque-img" src="" alt="" loading="lazy" style="display:none; width:58%; max-width:150px; height:auto; border-radius:8px; margin:0 auto 8px;">
+>                         <p id="rail-plaque-text" style="margin:0; font-size:1.2rem; line-height:1.45; color:#333;">Every basket includes a chocolate plaque with your occasion on it.</p>
+>                     </div>
+>                 </aside>
+4470a4497,4510
+> <style id="bb-rosh-restore-2026-09-08">
+>   /* Restored 2026-09-08 per Mikey: the "Good to know" FAQ rail now lives on the size step
+>      (the occasion step is hidden on this page, so it was never visible here).
+>      Desktop >=1024px: right rail beside the sizes, sticky — same as /pages/build-a-basket.
+>      Under 1024px: stacks below the sizes — same as /pages/build-a-basket. */
+>   @media (min-width: 1024px) {
+>     #step-size.active { display: grid; grid-template-columns: minmax(0, 1fr) 320px; column-gap: 32px; align-items: start; max-width: 1400px; margin: 0 auto; }
+>     #step-size.active > * { grid-column: 1; min-width: 0; }
+>     #step-size.active > .bb-rail { grid-column: 2; grid-row: 1 / span 80; position: sticky; top: 40px; align-self: start; height: fit-content; }
+>   }
+>   @media (max-width: 1023.98px) {
+>     #step-size .bb-rail { display: block; max-width: 800px; margin: 28px auto 0; }
+>   }
+> </style>
