@@ -29,10 +29,17 @@ def fetch(url):
         return r.read().decode("utf-8", "ignore")
 
 
-def to_text(b):
-    m = re.search(r"(?is)<article.*?</article>", b) or re.search(r"(?is)<main.*?</main>", b)
-    b = m.group(0) if m else b
-    b = re.sub(r"(?is)<(script|style|svg|nav|footer|header|form|noscript)[^>]*>.*?</\1>", " ", b)
+def to_text(b, _full=False):
+    m = None if _full else (re.search(r"(?is)<article.*?</article>", b) or re.search(r"(?is)<main.*?</main>", b))
+    if m and not _full:
+        t = to_text(m.group(0), _full=True)
+        if len(t.split()) >= 200:
+            return t
+        return to_text(b, _full=True)
+    stripped = re.sub(r"(?is)<(script|style|svg|nav|footer|header|noscript)[^>]*>.*?</\1>", " ", b)
+    if len(re.sub(r"<[^>]+>", " ", stripped).split()) < 200:  # layout tags swallowed the page
+        stripped = re.sub(r"(?is)<(script|style|svg|noscript)[^>]*>.*?</\1>", " ", b)
+    b = stripped
     b = re.sub(r"(?i)<h[1-4][^>]*>", "\n\n## ", b)
     b = re.sub(r"(?i)</h[1-4]>", "\n", b)
     b = re.sub(r"(?i)<(p|li|tr|br|div)[^>]*>", "\n", b)
@@ -53,6 +60,8 @@ def main():
     ap.add_argument("--ours", required=True)
     ap.add_argument("--title", default="", help="our page title, shown as the H1")
     ap.add_argument("--competitor", action="append", default=[])
+    ap.add_argument("--competitor-file", action="append", default=[],
+                    help="url=path to an HTML file saved by scripts/render.js, for pages that need a browser")
     ap.add_argument("--mask", action="append", default=[])
     ap.add_argument("--out", required=True)
     ap.add_argument("--seed", type=int, default=None)
@@ -67,6 +76,12 @@ def main():
         host = urlparse(url).netloc.replace("www.", "")
         brand = host.split(".")[0]
         pages.append((url, to_text(fetch(url)), [host, brand, brand.replace("-", " ")]))
+
+    for item in a.competitor_file:
+        url, path = item.split("=", 1)
+        host = urlparse(url).netloc.replace("www.", "")
+        brand = host.split(".")[0]
+        pages.append((url, to_text(open(path, encoding="utf-8", errors="ignore").read()), [host, brand, brand.replace("-", " ")]))
 
     labels = [chr(65 + i) for i in range(len(pages))]
     random.Random(a.seed).shuffle(labels)

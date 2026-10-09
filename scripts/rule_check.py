@@ -81,10 +81,16 @@ class Page(HTMLParser):
             self.links.append(a["href"])
             if self._row is not None:
                 self._row["links"].append(a["href"])
+                if getattr(self, "_cell", None) is not None:
+                    self._cell["links"].append(a["href"])
             if self._block:
                 self._block[-1]["links"].append(a["href"])
+        if tag == "table":
+            self._headers = []
         if tag == "tr":
-            self._row = {"text": "", "links": []}
+            self._row = {"text": "", "links": [], "cells": [], "headers": getattr(self, "_headers", [])}
+        if tag in ("td", "th") and self._row is not None:
+            self._cell = {"tag": tag, "text": "", "links": []}
         if tag in self.BLOCKS and tag != "tr":
             self._block.append({"tag": tag, "text": "", "links": []})
         if tag in ("h1", "h2", "h3", "h4"):
@@ -97,8 +103,14 @@ class Page(HTMLParser):
         if tag in ("script", "style"):
             self.skip = max(0, self.skip - 1)
             return
+        if tag in ("td", "th") and self._row is not None and getattr(self, "_cell", None) is not None:
+            self._row["cells"].append(self._cell)
+            self._cell = None
         if tag == "tr" and self._row is not None:
-            self.rows.append(self._row)
+            if self._row["cells"] and all(c["tag"] == "th" for c in self._row["cells"]):
+                self._headers = [c["text"].strip().lower() for c in self._row["cells"]]
+            else:
+                self.rows.append(self._row)
             self._row = None
         if tag in self.BLOCKS and tag != "tr" and self._block:
             b = self._block.pop()
@@ -119,6 +131,8 @@ class Page(HTMLParser):
         self.text.append(data)
         if self._row is not None:
             self._row["text"] += data + " "
+            if getattr(self, "_cell", None) is not None:
+                self._cell["text"] += data
         if self._block:
             self._block[-1]["text"] += data
         if self._h:
@@ -205,7 +219,9 @@ def main():
         hit("out word", f"'premium' used {premium} times (sparingly at most)")
     for m in re.finditer(r"(?i)\bultimate\b", visible):
         after = visible[m.end(): m.end() + 12]
-        if not (m.group(0) == "Ultimate" and re.match(r"\s*(basket|\(|\||,|\.|$| and| or| at| holds| serves)", after)):
+        before = visible[max(0, m.start() - 14): m.start()]
+        is_name = m.group(0) == "Ultimate" and (before.endswith("Gift Basket, ") or re.match(r"\s*(basket|Sampler|\(|\||,|\.|$| and| or| at| holds| serves)", after))
+        if not is_name:
             hit("out word", f"'ultimate' used as a word, not the basket name: '...{visible[max(0, m.start()-30):m.end()+30]}...'")
 
     for name, (pat, cap) in CAPS.items():
@@ -227,13 +243,13 @@ def main():
         hit("stale year", f"'...{visible[max(0, m.start()-40):m.end()+30]}...'", is_hard=False)
     for m in re.finditer(r"\[NEED[^\]]*\]", visible):
         hit("open gap", m.group(0), is_hard=False)
-    for em in set(re.findall(r"[\w.+-]+@[\w-]+\.[\w.]+", visible)):
+    for em in set(m.rstrip(".") for m in re.findall(r"[\w.+-]+@[\w-]+\.[\w.]+", visible)):
         if em.lower() != "orders@thesweettooth.com":
             hit("email", f"unexpected address {em}")
 
     # FAQ: the section titled "What Customers Ask Us"
     faq = []
-    faq_html = re.search(r"(?is)<h2[^>]*>\s*What Customers Ask Us\s*</h2>(.*?)(?=<h2|\Z)", raw)
+    faq_html = re.search(r"(?is)<h2[^>]*>\s*(?:What Customers Ask Us|Frequently Asked Questions)\s*</h2>(.*?)(?=<h2|\Z)", raw)
     if faq_html:
         pairs = re.findall(r"(?is)<h3[^>]*>(.*?)</h3>\s*(.*?)(?=<h3|\Z)", faq_html.group(1))
         for q, a in pairs:
@@ -276,6 +292,12 @@ def main():
     for unit in pg.rows + [b for b in pg.blocks if b["tag"] in ("p", "li")]:
         hs = {re.search(r"/products/([a-z0-9-]+)", l).group(1) for l in unit["links"] if "/products/" in l}
         amounts = dollars(unit["text"])
+        heads = unit.get("headers") or []
+        price_cols = [i for i, h in enumerate(heads) if "price" in h]
+        if unit.get("cells") and price_cols:
+            amounts = [a for i in price_cols if i < len(unit["cells"]) for a in dollars(unit["cells"][i]["text"])]
+            skipped = len(dollars(unit["text"])) - len(amounts)
+            checked += skipped  # non-price columns (budget bands) are labels, not prices
         if len(hs) == 1 and amounts:
             h = hs.pop()
             p = prods.get(h, {})
